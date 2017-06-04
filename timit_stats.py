@@ -1,6 +1,7 @@
 import os
 import scipy.io as sio
 import gesture as ges
+import math
 
 trans_dir = "../USC-TIMIT/EMA/Data/M1/trans"
 mat_dir = "../USC-TIMIT/EMA/Data/M1/mat"
@@ -87,23 +88,30 @@ def calc_gestures(mat_fname, trans_fname):
         t_s = float(t_starts[i])
         t_e = float(t_ends[i])
         ph = phonemes[i]
-
+        samples = {}
         # loop through ema from t_s up to t_e
         for p in params:
             rate = srates[p]
             i_start = int(t_s * rate)
             i_end = int(t_e * rate)
-            gestures[ph].add_samples(p, params[p][i_start:i_end])
-
+            samples[p] = [v for v in params[p][i_start:i_end] if not math.isnan(v)]
+        gestures[ph].add_samples(samples)
     return gestures
 
+gestures = {}
 
-trans_names = os.listdir(trans_dir)
-fname = os.path.splitext(trans_names[1])[0]
-t_fname = os.path.join(trans_dir, fname + ".trans")
-mat_fname = os.path.join(mat_dir, fname + ".mat")
-ges = calc_gestures(mat_fname, t_fname)
-for g_name, g in ges.items():
+for fname in os.listdir(trans_dir):
+    fname = os.path.splitext(fname)[0]
+    print "Analyze ", fname
+    t_fname = os.path.join(trans_dir, fname + ".trans")
+    mat_fname = os.path.join(mat_dir, fname + ".mat")
+    gest = calc_gestures(mat_fname, t_fname)
+    for g in gest:
+        if g not in gestures:
+            gestures[g] = ges.Gesture(g)
+        gestures[g].extend(gest[g])
+
+for g_name, g in gestures.items():
     print g_name
     print len(g.params["LL_x"])
     g_m = g.get_mean()
@@ -111,7 +119,3 @@ for g_name, g in ges.items():
     g_v = g.get_variance()
     print g_v
 
-print ges.keys()
-print len(ges["iy"].params["TT_z"])
-print len(ges["iy"].params["LL_x"])
-print len(ges["iy"].params["TT_y"])
