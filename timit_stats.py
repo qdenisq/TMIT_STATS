@@ -94,28 +94,60 @@ def calc_gestures(mat_fname, trans_fname):
             rate = srates[p]
             i_start = int(t_s * rate)
             i_end = int(t_e * rate)
-            samples[p] = [v for v in params[p][i_start:i_end] if not math.isnan(v)]
+            # try to filter only samples considered as target
+            length = i_end - i_start
+            samples[p] = [v for v in params[p][i_start+length/4:i_start+length/4*3] if not math.isnan(v)]
         gestures[ph].add_samples(samples)
     return gestures
 
-gestures = {}
 
-for fname in os.listdir(trans_dir):
-    fname = os.path.splitext(fname)[0]
-    print "Analyze ", fname
-    t_fname = os.path.join(trans_dir, fname + ".trans")
-    mat_fname = os.path.join(mat_dir, fname + ".mat")
-    gest = calc_gestures(mat_fname, t_fname)
-    for g in gest:
-        if g not in gestures:
-            gestures[g] = ges.Gesture(g)
-        gestures[g].extend(gest[g])
+def normalize_gestures(gestures):
+    g = gestures.itervalues().next()
+    params = g.params.keys()
+    p_max = {p: max(g.params[p]) for p in params}
+    p_min = {p: min(g.params[p]) for p in params}
+    for p in params:
+        for g in gestures:
+            p_max[p] = max(p_max[p], max(gestures[g].params[p]))
+            p_min[p] = min(p_min[p], min(gestures[g].params[p]))
 
-for g_name, g in gestures.items():
-    print g_name
-    print len(g.params["LL_x"])
-    g_m = g.get_mean()
-    print g_m
-    g_v = g.get_variance()
-    print g_v
+    norm_gestures = gestures.copy()
+    for g in norm_gestures:
+        for p, v in norm_gestures[g].params.items():
+            norm_gestures[g].params[p] = [(i - p_min[p])/(p_max[p]-p_min[p]) for i in v]
+    return norm_gestures, p_max, p_min
 
+
+def test():
+
+    gestures = {}
+
+    for fname in os.listdir(trans_dir):
+        fname = os.path.splitext(fname)[0]
+        print "Analyze ", fname
+        t_fname = os.path.join(trans_dir, fname + ".trans")
+        mat_fname = os.path.join(mat_dir, fname + ".mat")
+        gest = calc_gestures(mat_fname, t_fname)
+        for g in gest:
+            if g not in gestures:
+                gestures[g] = ges.Gesture(g)
+            gestures[g].extend(gest[g])
+
+    for g_name, g in gestures.items():
+        print g_name
+        print len(g.params["LL_x"])
+        g_m = g.get_mean()
+        print g_m
+        g_v = g.get_variance()
+        print g_v
+
+    norm_gest, _, _ = normalize_gestures(gestures)
+
+    for g_name, g in norm_gest.items():
+        print g_name
+        print len(g.params["LL_x"])
+        g_m = g.get_mean()
+        print g_m
+        g_v = g.get_variance()
+        print g_v
+    return
