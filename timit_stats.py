@@ -8,6 +8,13 @@ mat_dir = "../USC-TIMIT/EMA/Data/M1/mat"
 trans = os.listdir(trans_dir)
 
 
+def list_TIMIT_dir(root_dir):
+    trans_dir = os.path.join(root_dir, "trans")
+    mat_dir = os.path.join(root_dir, "mat")
+    return [ (os.path.join(trans_dir, fname),
+              os.path.join(mat_dir, os.path.splitext(fname)[0] + ".mat")) for fname in os.listdir(trans_dir)]
+
+
 def parse_transcription(fname):
     t_starts = []
     t_ends = []
@@ -18,8 +25,8 @@ def parse_transcription(fname):
         content = f.readlines()
     for line in content:
         word_list = line.split(',')
-        t_starts.append(word_list[0])
-        t_ends.append(word_list[1])
+        t_starts.append(float(word_list[0]))
+        t_ends.append(float(word_list[1]))
         phonemes.append(word_list[2])
         words.append(word_list[3])
         sentences.append(word_list[4])
