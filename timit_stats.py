@@ -103,7 +103,7 @@ def calc_gestures(mat_fname, trans_fname):
             i_end = int(t_e * rate)
             # try to filter only samples considered as target
             length = i_end - i_start
-            samples[p] = [v for v in params[p][i_start+length/4:i_start+length/4*3] if not math.isnan(v)]
+            samples[p] = [v for v in params[p][i_start:i_start+length] if not math.isnan(v)]
         gestures[ph].add_samples(samples)
     return gestures
 
