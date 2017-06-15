@@ -2,6 +2,7 @@ import os
 import scipy.io as sio
 import gesture as ges
 import math
+import critical_point as cp
 
 trans_dir = "../USC-TIMIT/EMA/Data/M1/trans"
 mat_dir = "../USC-TIMIT/EMA/Data/M1/mat"
@@ -67,9 +68,6 @@ def parse_mat(mat_fname):
         srates[p + "_y"] = data[0,r][1][0][0]
         srates[p + "_z"] = data[0,r][1][0][0]
         sample_size = len(data[0,r][2])
-        # print "Articulator = ",data[0,r][0][0]
-        # print "SRate = ", data[0,r][1][0][0]
-        # print "Samples len = ",len(data[0,r][2])
         for i in range(sample_size):
             params[p + "_x"].append(data[0, r][2][i][0])
             params[p + "_y"].append(data[0, r][2][i][1])
@@ -77,7 +75,7 @@ def parse_mat(mat_fname):
     return params, srates
 
 
-def calc_gestures(mat_fname, trans_fname):
+def calc_gestures(mat_fname, trans_fname, filter_critical_points=False, m=0.05):
     gestures = {}
 
     # parse trans file
@@ -86,6 +84,15 @@ def calc_gestures(mat_fname, trans_fname):
 
     # parse mat file
     params, srates = parse_mat(mat_fname)
+
+    critical_points = set()
+    if filter_critical_points:
+        param_names = params.keys()
+        param_names = [p[:-2] for p in param_names]
+        param_names = list(set(param_names))
+        for p in param_names:
+            critical_points.update(cp.find_critical_points(p, params, m))
+
 
     for ph in phones:
         gestures[ph] = ges.Gesture(ph)
@@ -101,9 +108,14 @@ def calc_gestures(mat_fname, trans_fname):
             rate = srates[p]
             i_start = int(t_s * rate)
             i_end = int(t_e * rate)
+
             # try to filter only samples considered as target
             length = i_end - i_start
-            samples[p] = [v for v in params[p][i_start:i_start+length] if not math.isnan(v)]
+            if filter_critical_points:
+                samples[p] = [v for v, i in zip(params[p][i_start:i_start+length], range(i_start, i_end)) if
+                              not math.isnan(v) and i in critical_points]
+            else:
+                samples[p] = [v for v in params[p][i_start:i_start + length] if not math.isnan(v)]
         gestures[ph].add_samples(samples)
     return gestures
 

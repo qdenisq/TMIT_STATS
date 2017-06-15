@@ -19,8 +19,10 @@ def S(t, v, m):
     if t == 0:
         return t
     i = t
-    while i > 0 and sum(v[i:t]) - m < 0:
+    acc = v[i]
+    while i > 0 and acc < m:
         i -= 1
+        acc += v[i]
     return i
 
 
@@ -28,17 +30,19 @@ def E(t, v, m):
     if t == len(v):
         return t
     i = t
-    while i < len(v)-1 and sum(v[t:i]) - m < 0:
+    acc = v[i]
+    while i < len(v)-1 and acc < m:
         i += 1
+        acc += v[i]
     return i
 
 
-def find_critical_points(a, params):
+def find_critical_points(a, params, m):
     a_x = params[a+"_x"]
     a_y = params[a+"_y"]
     imp, vel, angle = calc_importance(a_x, a_y)
     cp = []
-    m = 0.01 * sum(vel)
+    m = m * sum(vel)
     for i in range(len(imp)):
         s = S(i, vel, m)
         e = E(i, vel, m)
